@@ -402,6 +402,8 @@ The programmer should be aware of the internal state so as not to break the stat
   "[internal] Default table name filter."
   (loop for rec in (edbi:dbd-extract-table-info table-info)
         for (catalog schema table type remarks) = rec
+        do (setq schema (or schema ""))
+        do (setq rec (list catalog schema table type remarks))
         if (not (or (string-match "\\(INDEX\\|SYSTEM\\)" type)
                     (string-match "\\(information_schema\\|SYSTEM\\)" schema)))
         collect rec))
@@ -533,10 +535,40 @@ The programmer should be aware of the internal state so as not to break the stat
                        'edbi:dbd-default-keywords))
   (loop for i in (list edbi:dbd-default
                        (edbi:dbd-init-postgresql)
+                       (edbi:dbd-init-msaccess)
                        (edbi:dbd-init-mysql)
                        (edbi:dbd-init-oracle))
         do
         (edbi:dbd-register i)))
+
+(defun edbi:dbd-init-msaccess ()
+  "[internal] Initialize `edbi:dbd' object for MS Access."
+  (make-edbi:dbd :name "dbi:ODBC"
+                 :table-info-args
+                 (lambda (conn) (list nil nil nil nil))
+                 :table-info-filter
+                 'edbi:dbd-msaccess-table-info-filter
+                 :column-info-args
+                 (lambda (conn table) (list nil nil table nil))
+                 :column-info-filter
+                 'edbi:dbd-default-column-info-filter
+                 :type-info-filter
+                 'edbi:dbd-default-type-info-filter
+                 :limit-format
+                 "SELECT * FROM %table% LIMIT %limit%"
+                 :keywords
+                 'edbi:dbd-default-keywords))
+
+(defun edbi:dbd-msaccess-table-info-filter (table-info)
+  "[internal] Default table name filter."
+  (loop for rec in (edbi:dbd-extract-table-info table-info)
+        for (catalog schema table type remarks) = rec
+        do (setq catalog "") ; catalog is just the database filename, which is clunky
+        do (setq schema (or schema "")) ; prevent schema from being nil
+        do (setq rec (list catalog schema table type remarks))
+        if (not (or (string-match "\\(INDEX\\|SYSTEM\\)" type)
+                    (string-match "\\(information_schema\\|SYSTEM\\)" (or schema ""))))
+        collect rec))
 
 (defun edbi:dbd-init-postgresql ()
   "[internal] Initialize `edbi:dbd' object for Postgresql."
