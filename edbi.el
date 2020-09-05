@@ -83,7 +83,7 @@
 ;;; Code:
 
 
-(eval-when-compile (require 'cl)
+(eval-when-compile (require 'cl-lib)
                    (require 'auto-complete nil t))
 (require 'epc)
 (require 'sql)
